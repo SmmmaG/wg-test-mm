@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.5.0'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    implementation "io.ktor:ktor-server-core:1.6.0"
+    implementation "io.ktor:ktor-server-netty:1.6.0"
+    implementation "ch.qos.logback:logback-classic:1.2.3"
+    implementation "io.ktor:ktor-serialization:1.6.0"
+    testImplementation "io.ktor:ktor-server-tests:1.6.0"
+}
+
+test {
+    useJUnitPlatform()
+}
