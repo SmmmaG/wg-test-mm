@@ -10,6 +10,15 @@ class PlayerStorage {
 
     private var lastInTime: ZonedDateTime? = null
     private var groupNumber: Int = 1
+    private var groupSize: Int = 1
+
+    fun setGroupSize(size: Int) {
+        groupSize = size
+    }
+
+    fun getLastInTime(): ZonedDateTime? {
+        return lastInTime
+    }
 
     fun addPlayer(player: Player): Boolean {
         synchronized(playersPool) {
@@ -29,6 +38,7 @@ class PlayerStorage {
             playersPool.add(player)
             calculateMetrics()
             lastInTime = player.inTime
+            createGroups(0.1)
         }
         return true
     }
@@ -55,8 +65,14 @@ class PlayerStorage {
         synchronized(playersPool) {
             if (players.none { !playersPool.contains(it) }) {
                 players.forEach { playersPool.remove(it) }
-                calculateMetrics()
-            } else return false
+                if (players.isEmpty()) {
+                    lastInTime = null
+                } else {
+                    calculateMetrics()
+                }
+            } else {
+                return false
+            }
         }
         return true
     }
@@ -65,42 +81,46 @@ class PlayerStorage {
         playersPool.sortedBy { player -> player.skillLatencyMetric }.forEach { player -> println("$player") }
     }
 
-    fun createGroups(delta: Double, size: Int) {
-        val group = createGroup(playersPool, delta, size)
+    fun createGroups(delta: Double): Boolean {
+        val group = createGroup(playersPool, delta, groupSize)
         if (group.isNotEmpty()) {
             removePlayersGroup(group)
-            var minSkill = Double.MAX_VALUE
-            var maxSkill = Double.MIN_VALUE
-            var avgSkill = 0.0
-            var minLatency = Double.MAX_VALUE
-            var maxLatency = Double.MIN_VALUE
-            var avgLatency = 0.0
-            var minTime = Long.MAX_VALUE
-            var maxTime = Long.MIN_VALUE
-            var avgTime: Long = 0
-            val currentTime = ZonedDateTime.now()
-            group.forEach { player ->
-                minSkill = min(minSkill, player.skill)
-                maxSkill = max(maxSkill, player.skill)
-                avgSkill += player.skill
-                minLatency = min(minLatency, player.latency)
-                maxLatency = max(maxLatency, player.latency)
-                avgLatency += player.latency
-                minTime = min(minTime, currentTime.toEpochSecond() - player.inTime.toEpochSecond())
-                maxTime = max(maxTime, currentTime.toEpochSecond() - player.inTime.toEpochSecond())
-                avgTime = currentTime.toEpochSecond() - player.inTime.toEpochSecond()
-            }
-            println(
-                """-
-${groupNumber++}
-$minSkill/$maxSkill/${avgSkill / size} skill in group
-$minLatency/$maxLatency/${avgLatency / size} latency in group
-${minTime % 1000}/${maxTime % 1000}/${avgTime / size / 1000} sec time spent in queue
-${group.joinToString(",\n") { player -> player.name }}
-        """.trimIndent()
-            )
-        }
+            outputGroupInfo(group)
+        } else return false
+        return true
+    }
 
+    private fun outputGroupInfo(group: List<Player>) {
+        var minSkill = Double.MAX_VALUE
+        var maxSkill = Double.MIN_VALUE
+        var avgSkill = 0.0
+        var minLatency = Double.MAX_VALUE
+        var maxLatency = Double.MIN_VALUE
+        var avgLatency = 0.0
+        var minTime = Long.MAX_VALUE
+        var maxTime = Long.MIN_VALUE
+        var avgTime: Long = 0
+        val currentTime = ZonedDateTime.now()
+        group.forEach { player ->
+            minSkill = min(minSkill, player.skill)
+            maxSkill = max(maxSkill, player.skill)
+            avgSkill += player.skill
+            minLatency = min(minLatency, player.latency)
+            maxLatency = max(maxLatency, player.latency)
+            avgLatency += player.latency
+            minTime = min(minTime, currentTime.toEpochSecond() - player.inTime.toEpochSecond())
+            maxTime = max(maxTime, currentTime.toEpochSecond() - player.inTime.toEpochSecond())
+            avgTime = currentTime.toEpochSecond() - player.inTime.toEpochSecond()
+        }
+        println(
+            """-
+    ${groupNumber++}
+    $minSkill/$maxSkill/${avgSkill / groupSize} skill in group
+    $minLatency/$maxLatency/${avgLatency / groupSize} latency in group
+    ${minTime % 1000}/${maxTime % 1000}/${avgTime / groupSize / 1000} sec time spent in queue
+    ${group.joinToString(",\n") { player -> player.name }}
+            """.trimIndent()
+        )
     }
 
     fun createGroup(playersList: List<Player>, delta: Double, size: Int): List<Player> {

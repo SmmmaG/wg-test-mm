@@ -9,8 +9,9 @@ class Player(val latency: Double, val skill: Double, val name: String) {
     var skillAverage: Double = 0.0
     var latencyAverage: Double = 0.0
     var skillLatencyMetric: Double = 0.0
+
     override fun toString(): String {
-        return "$name $skill($skillNumber/${skillAverage*100}) $latency ($latencyNumber/${latencyAverage*100}) Metric: ${(skillLatencyMetric * 100)}"
+        return "$name $skill($skillNumber/${skillAverage * 100}) $latency ($latencyNumber/${latencyAverage * 100}) Metric: ${(skillLatencyMetric * 100)}"
     }
 
     override fun equals(other: Any?): Boolean {
